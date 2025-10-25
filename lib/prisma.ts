@@ -14,6 +14,7 @@ function createPrismaClient() {
   const usingNeon = connectionString.includes("neon.tech");
 
   if (usingNeon) {
+    console.log("[Prisma] Using Neon HTTP adapter");
     const adapter = new PrismaNeonHTTP(connectionString, {
       arrayMode: true,
       fullResults: true,
@@ -24,6 +25,7 @@ function createPrismaClient() {
     });
   }
 
+  console.log("[Prisma] Using standard Prisma Client");
   return new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
