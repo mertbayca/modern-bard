@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/create-admin.ts",
     "hash-password": "tsx scripts/generate-password-hash.ts",
+    "init-production": "tsx scripts/init-production.ts",
     "setup": "npm run db:push && npm run db:generate && npm run db:seed"
   },
   "dependencies": {
