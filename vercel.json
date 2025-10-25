@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "app/**/*.ts": {
+      "includeFiles": "node_modules/.prisma/client/**"
+    },
+    "app/**/*.tsx": {
+      "includeFiles": "node_modules/.prisma/client/**"
+    },
+    "app/**/*.js": {
+      "includeFiles": "node_modules/.prisma/client/**"
+    },
+    "app/**/*.jsx": {
+      "includeFiles": "node_modules/.prisma/client/**"
+    }
+  }
+}
