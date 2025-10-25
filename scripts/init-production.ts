@@ -29,10 +29,18 @@ async function main() {
       return;
     }
 
-    // Get credentials from environment or use defaults
-    const email = process.env.ADMIN_EMAIL || "admin@modernbard.local";
-    const password = process.env.ADMIN_PASSWORD || "admin123456";
+    // Require environment variables - no defaults for security
+    const email = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
     const name = process.env.ADMIN_NAME || "Admin";
+
+    if (!email || !password) {
+      console.error("\n❌ Error: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required");
+      console.error("   Set them before running this script:");
+      console.error("   export ADMIN_EMAIL='your-email@example.com'");
+      console.error("   export ADMIN_PASSWORD='your-secure-password'\n");
+      process.exit(1);
+    }
 
     // Create admin user
     console.log("👤 Creating admin user...");
