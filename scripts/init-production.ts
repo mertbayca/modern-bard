@@ -29,23 +29,28 @@ async function main() {
       return;
     }
 
+    // Get credentials from environment or use defaults
+    const email = process.env.ADMIN_EMAIL || "admin@modernbard.local";
+    const password = process.env.ADMIN_PASSWORD || "admin123456";
+    const name = process.env.ADMIN_NAME || "Admin";
+
     // Create admin user
     console.log("👤 Creating admin user...");
-    const hashedPassword = await bcrypt.hash("admin123456", 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const admin = await prisma.user.create({
       data: {
-        email: "admin@modernbard.local",
+        email,
         password: hashedPassword,
-        name: "Admin",
+        name,
         role: "admin",
       },
     });
 
     console.log("✅ Admin user created successfully!\n");
     console.log("📝 Login credentials:");
-    console.log("   Email:    admin@modernbard.local");
-    console.log("   Password: admin123456");
+    console.log(`   Email:    ${email}`);
+    console.log(`   Password: ${password}`);
     console.log("\n⚠️  IMPORTANT: Change this password after first login!\n");
     console.log("🎉 Setup complete! You can now login to your app.\n");
 
