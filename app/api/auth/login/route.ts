@@ -54,11 +54,12 @@ export async function POST(request: NextRequest) {
 
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      console.error("Validation errors:", error.errors);
+      const zodError = error as z.ZodError;
+      console.error("Validation errors:", zodError.issues);
       return NextResponse.json(
         {
           error: "Invalid request",
-          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          details: zodError.issues.map(e => `${e.path.join('.')}: ${e.message}`)
         },
         { status: 400 }
       );
