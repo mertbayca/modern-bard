@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     mdxRs: true,
   },
+  turbopack: {},
 };
 
 export default withContentlayer(nextConfig);
