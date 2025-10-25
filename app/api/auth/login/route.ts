@@ -51,11 +51,25 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Login error:", error);
+
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      console.error("Validation errors:", error.errors);
+      return NextResponse.json(
+        {
+          error: "Invalid request",
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        },
+        { status: 400 }
+      );
+    }
+
     if (error instanceof Error) {
       console.error("Error details:", error.message, error.stack);
     }
+
     return NextResponse.json(
-      { error: "Invalid request" },
+      { error: "Invalid request", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 400 }
     );
   }
