@@ -17,7 +17,10 @@ export default function LibraryPage() {
     return allPosts
       .filter((post) => post.published)
       .filter((post) => selectedForm === "all" || post.form === selectedForm)
-      .filter((post) => selectedTheme === "all" || post.themes.includes(selectedTheme))
+      .filter((post) => {
+        if (selectedTheme === "all") return true;
+        return post.themes.some((theme) => theme === selectedTheme);
+      })
       .sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [selectedForm, selectedTheme]);
 

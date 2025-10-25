@@ -33,6 +33,26 @@ export function PostEditor({ post }: PostEditorProps) {
     e.preventDefault();
     setLoading(true);
 
+    // Validation
+    if (!formData.title.trim()) {
+      alert("Please enter a title");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      alert("Please enter content");
+      setLoading(false);
+      return;
+    }
+
+    console.log("Submitting post:", {
+      url: post?.id ? `/api/posts/${post.id}` : "/api/posts",
+      method: post?.id ? "PATCH" : "POST",
+      publish,
+      formData
+    });
+
     try {
       const url = post?.id ? `/api/posts/${post.id}` : "/api/posts";
       const method = post?.id ? "PATCH" : "POST";
@@ -46,10 +66,16 @@ export function PostEditor({ post }: PostEditorProps) {
         }),
       });
 
+      console.log("Response status:", response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Error response:", errorData);
         throw new Error(errorData.error || `Failed to save post: ${response.status}`);
       }
+
+      const result = await response.json();
+      console.log("Success:", result);
 
       router.push("/admin/dashboard");
       router.refresh();
