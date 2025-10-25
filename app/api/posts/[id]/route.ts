@@ -55,8 +55,12 @@ export async function PATCH(
     if (published) {
       await mkdir(contentDir, { recursive: true });
 
+      // Extract first paragraph or first 150 chars as summary
+      const summary = content.split('\n\n')[0].substring(0, 150).trim();
+
       const mdxContent = `---
 title: "${title}"
+summary: "${summary.replace(/"/g, '\\"')}"
 date: "${existingDraft.createdAt.toISOString()}"
 updated: "${new Date().toISOString()}"
 form: "${form}"
