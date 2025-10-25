@@ -11,6 +11,8 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("Login attempt for email:", body.email);
+
     const { email, password } = loginSchema.parse(body);
 
     const user = await prisma.user.findUnique({
@@ -18,21 +20,25 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      console.log("User not found:", email);
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
+    console.log("User found, verifying password for:", email);
     const isValid = await verifyPassword(password, user.password);
 
     if (!isValid) {
+      console.log("Invalid password for:", email);
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
+    console.log("Login successful for:", email);
     await createSession(user.id);
 
     return NextResponse.json({
@@ -45,6 +51,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Login error:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message, error.stack);
+    }
     return NextResponse.json(
       { error: "Invalid request" },
       { status: 400 }
