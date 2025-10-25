@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
+import { PrismaNeonHTTP } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -16,8 +14,10 @@ function createPrismaClient() {
   const usingNeon = connectionString.includes("neon.tech");
 
   if (usingNeon) {
-    neonConfig.webSocketConstructor = ws as unknown as typeof WebSocket;
-    const adapter = new PrismaNeon({ connectionString });
+    const adapter = new PrismaNeonHTTP(connectionString, {
+      arrayMode: true,
+      fullResults: true,
+    });
     return new PrismaClient({
       adapter,
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
