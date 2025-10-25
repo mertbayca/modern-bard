@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   },
   // Empty turbopack config to silence the webpack warning
   turbopack: {},
+  // Ensure API routes work properly
+  rewrites: async () => {
+    return [];
+  },
 };
 
 export default withContentlayer(nextConfig);
