@@ -1,10 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { sql, generateId } from "../lib/db";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
-
 async function main() {
-  // Require environment variables - no defaults for security
+  console.log("👤 Creating admin user...\n");
+
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
   const name = process.env.ADMIN_NAME || "Admin";
@@ -13,45 +12,43 @@ async function main() {
     console.error("❌ Error: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required");
     console.error("   Set them before running this script:");
     console.error("   export ADMIN_EMAIL='your-email@example.com'");
-    console.error("   export ADMIN_PASSWORD='your-secure-password'");
+    console.error("   export ADMIN_PASSWORD='your-secure-password'\n");
     process.exit(1);
   }
 
-  // Check if admin already exists
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email },
-  });
+  try {
+    // Check if admin exists
+    const existing = await sql`
+      SELECT id, email, name FROM users WHERE role = 'admin' LIMIT 1
+    `;
 
-  if (existingAdmin) {
-    console.log("Admin user already exists:", email);
-    return;
+    if (existing.length > 0) {
+      console.log("⚠️  Admin user already exists:");
+      console.log(`   Email: ${existing[0].email}`);
+      console.log(`   Name: ${existing[0].name}\n");
+      return;
+    }
+
+    // Create admin user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const id = generateId();
+
+    const role = 'admin';
+    await sql`
+      INSERT INTO users (id, email, password, name, role)
+      VALUES (${id}, ${email}, ${hashedPassword}, ${name}, ${role})
+    `;
+
+    console.log("✅ Admin user created successfully!\n");
+    console.log("📝 Login credentials:");
+    console.log(`   Email:    ${email}`);
+    console.log(`   Password: ${password}`);
+    console.log("\n⚠️  IMPORTANT: Change this password after first login!\n");
+  } catch (error) {
+    console.error("❌ Error creating admin user:");
+    console.error(error);
+    process.exit(1);
   }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Create admin user
-  const admin = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
-      role: "admin",
-    },
-  });
-
-  console.log("Admin user created successfully!");
-  console.log("Email:", email);
-  console.log("Password:", password);
-  console.log("\nPlease change the password after first login!");
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+main();

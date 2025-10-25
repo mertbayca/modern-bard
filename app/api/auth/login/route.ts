@@ -1,47 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyPassword, createSession } from "@/lib/auth";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { SignJWT } from "jose";
+import { sql, generateId } from "@/lib/db";
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("Login attempt for email:", body.email);
-
     const { email, password } = loginSchema.parse(body);
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Find user
+    const users = await sql`
+      SELECT id, email, password, name, role
+      FROM users
+      WHERE email = ${email}
+      LIMIT 1
+    `;
 
-    if (!user) {
-      console.log("User not found:", email);
+    if (users.length === 0) {
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
-    console.log("User found, verifying password for:", email);
-    const isValid = await verifyPassword(password, user.password);
+    const user = users[0];
 
-    if (!isValid) {
-      console.log("Invalid password for:", email);
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
-    console.log("Login successful for:", email);
-    await createSession(user.id);
+    // Create session
+    const sessionId = generateId();
+    const token = generateId();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    return NextResponse.json({
+    await sql`
+      INSERT INTO sessions (id, user_id, token, expires_at)
+      VALUES (${sessionId}, ${user.id}, ${token}, ${expiresAt})
+    `;
+
+    // Create JWT
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const jwt = await new SignJWT({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("7d")
+      .sign(secret);
+
+    const response = NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
@@ -49,29 +71,32 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
+
+    response.cookies.set("auth-token", jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
 
-    // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      const zodError = error as z.ZodError;
-      console.error("Validation errors:", zodError.issues);
       return NextResponse.json(
         {
           error: "Invalid request",
-          details: zodError.issues.map(e => `${e.path.join('.')}: ${e.message}`)
+          details: error.issues.map((e) => `${e.path.join(".")}: ${e.message}`),
         },
         { status: 400 }
       );
     }
 
-    if (error instanceof Error) {
-      console.error("Error details:", error.message, error.stack);
-    }
-
     return NextResponse.json(
-      { error: "Invalid request", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 400 }
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
 }

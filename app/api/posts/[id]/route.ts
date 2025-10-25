@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { sql } from "@/lib/db";
 import { writeFile, unlink, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
@@ -21,13 +21,15 @@ export async function PATCH(
     const { title, content, form, themes, published } = body;
 
     // Get existing draft
-    const existingDraft = await prisma.draft.findUnique({
-      where: { id },
-    });
+    const existingDrafts = await sql`
+      SELECT * FROM drafts WHERE id = ${id}
+    `;
 
-    if (!existingDraft) {
+    if (existingDrafts.length === 0) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
+
+    const existingDraft = existingDrafts[0];
 
     // Generate slug from title
     const slug = title
@@ -35,18 +37,19 @@ export async function PATCH(
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
+    // Extract summary
+    const summary = content.split('\n\n')[0].substring(0, 150).trim();
+
     // Update draft in database
-    const draft = await prisma.draft.update({
-      where: { id },
-      data: {
-        title,
-        slug,
-        content,
-        form,
-        themes,
-        published,
-      },
-    });
+    await sql`
+      UPDATE drafts
+      SET title = ${title}, slug = ${slug}, content = ${content}, summary = ${summary},
+          form = ${form}, themes = ${themes}, published = ${published}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+    `;
+
+    const drafts = await sql`SELECT * FROM drafts WHERE id = ${id}`;
+    const draft = drafts[0];
 
     const contentDir = join(process.cwd(), "content", "library");
     const filePath = join(contentDir, `${slug}.mdx`);
@@ -55,16 +58,16 @@ export async function PATCH(
     if (published) {
       await mkdir(contentDir, { recursive: true });
 
-      // Extract first paragraph or first 150 chars as summary
-      const summary = content.split('\n\n')[0].substring(0, 150).trim();
+      const themesArray = themes.split(",").map((t: string) => `"${t.trim()}"`).join(", ");
+      const escapedSummary = summary.replace(/"/g, '\\"');
 
       const mdxContent = `---
 title: "${title}"
-summary: "${summary.replace(/"/g, '\\"')}"
-date: "${existingDraft.createdAt.toISOString()}"
+summary: "${escapedSummary}"
+date: "${new Date(existingDraft.created_at).toISOString()}"
 updated: "${new Date().toISOString()}"
 form: "${form}"
-themes: [${themes.split(",").map((t: string) => `"${t.trim()}"`).join(", ")}]
+themes: [${themesArray}]
 ---
 
 ${content}
@@ -99,18 +102,20 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const draft = await prisma.draft.findUnique({
-      where: { id },
-    });
+    const drafts = await sql`
+      SELECT * FROM drafts WHERE id = ${id}
+    `;
 
-    if (!draft) {
+    if (drafts.length === 0) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
+    const draft = drafts[0];
+
     // Delete from database
-    await prisma.draft.delete({
-      where: { id },
-    });
+    await sql`
+      DELETE FROM drafts WHERE id = ${id}
+    `;
 
     // Delete MDX file if it exists
     const slug = draft.title

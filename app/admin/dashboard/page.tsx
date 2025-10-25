@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { sql } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -11,15 +11,14 @@ export default async function DashboardPage() {
     redirect("/admin/login");
   }
 
-  const [draftCount, subscriberCount] = await Promise.all([
-    prisma.draft.count(),
-    prisma.subscriber.count({ where: { active: true } }),
+  const [draftCountResult, subscriberCountResult, recentDrafts] = await Promise.all([
+    sql`SELECT COUNT(*) as count FROM drafts`,
+    sql`SELECT COUNT(*) as count FROM subscribers WHERE active = true`,
+    sql`SELECT * FROM drafts ORDER BY updated_at DESC LIMIT 5`,
   ]);
 
-  const recentDrafts = await prisma.draft.findMany({
-    take: 5,
-    orderBy: { updatedAt: "desc" },
-  });
+  const draftCount = Number(draftCountResult[0].count);
+  const subscriberCount = Number(subscriberCountResult[0].count);
 
   return (
     <div className="min-h-screen bg-paper dark:bg-ink">

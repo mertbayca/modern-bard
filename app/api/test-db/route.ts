@@ -1,34 +1,30 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { sql } from "@/lib/db";
 
 // Temporary endpoint to test database connection
 // Delete this after debugging
 export async function GET() {
   try {
-    // Test database connection
-    await prisma.$connect();
-
     // Count users
-    const userCount = await prisma.user.count();
+    const userCountResult = await sql`SELECT COUNT(*) as count FROM users`;
+    const userCount = Number(userCountResult[0].count);
 
     // Get admin user (without password)
-    const admin = await prisma.user.findFirst({
-      where: { role: "admin" },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+    const admins = await sql`
+      SELECT id, email, name, role, created_at
+      FROM users
+      WHERE role = 'admin'
+      LIMIT 1
+    `;
+
+    const admin = admins.length > 0 ? admins[0] : null;
 
     return NextResponse.json({
       success: true,
       database: "connected",
       userCount,
       adminExists: !!admin,
-      admin: admin || null,
+      admin,
     });
   } catch (error) {
     console.error("Database test error:", error);

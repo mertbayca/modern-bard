@@ -33,5 +33,5 @@
     "**/*.mts",
     ".contentlayer/generated"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "scripts", "db"]
 }

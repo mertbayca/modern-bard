@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { sql } from "@/lib/db";
 import { PostEditor } from "@/components/post-editor";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,22 @@ export default async function EditPostPage({
 
   const { id } = await params;
 
-  const post = await prisma.draft.findUnique({
-    where: { id },
-  });
+  const posts = await sql`
+    SELECT * FROM drafts WHERE id = ${id}
+  `;
 
-  if (!post) {
+  if (posts.length === 0) {
     redirect("/admin/dashboard");
   }
+
+  const post = posts[0] as {
+    id: string;
+    title: string;
+    content: string;
+    form: string;
+    themes: string;
+    published: boolean;
+  };
 
   return (
     <div className="min-h-screen bg-paper dark:bg-ink">
