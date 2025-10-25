@@ -1,23 +1,50 @@
-import { PrismaClient } from "@prisma/client";
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaClient as PrismaNodeClient } from "@prisma/client";
+import { PrismaClient as PrismaEdgeClient } from "@prisma/client/edge";
+import { PrismaNeon, PrismaNeonHTTP } from "@prisma/adapter-neon";
+import { neonConfig } from "@neondatabase/serverless";
 import ws from "ws";
 
+type PrismaClientInstance =
+  | InstanceType<typeof PrismaNodeClient>
+  | InstanceType<typeof PrismaEdgeClient>;
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: PrismaClientInstance | undefined;
 };
 
 function createPrismaClient() {
-  // Use Neon serverless adapter on Vercel to bypass Prisma engine binary
-  if (process.env.VERCEL && process.env.DATABASE_URL) {
-    neonConfig.webSocketConstructor = ws;
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const adapter = new PrismaNeon(pool as any);
-    return new PrismaClient({ adapter });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not defined.");
   }
 
-  // Use standard Prisma Client for local development
-  return new PrismaClient({
+  neonConfig.webSocketConstructor = ws as unknown as typeof WebSocket;
+
+  const hasEdgeRuntimeGlobal =
+    typeof (globalThis as { EdgeRuntime?: string }).EdgeRuntime !== "undefined";
+  const useEdgeClient =
+    !!process.env.VERCEL ||
+    process.env.NEXT_RUNTIME === "edge" ||
+    hasEdgeRuntimeGlobal;
+  const usingNeon = connectionString.includes("neon.tech");
+
+  if (useEdgeClient && usingNeon) {
+    const adapter = new PrismaNeonHTTP(connectionString, {
+      arrayMode: true,
+      fullResults: true,
+    });
+    return new PrismaEdgeClient({ adapter });
+  }
+
+  if (usingNeon) {
+    const adapter = new PrismaNeon({ connectionString });
+    return new PrismaNodeClient({
+      adapter,
+      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    });
+  }
+
+  return new PrismaNodeClient({
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 }
