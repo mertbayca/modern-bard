@@ -15,10 +15,7 @@ function createPrismaClient() {
   const usingNeon = connectionString.includes("neon.tech");
 
   if (usingNeon) {
-    console.log("[Prisma] Using Neon Pool adapter with fetch");
-    // Use fetch for HTTP-based queries in serverless environments
-    neonConfig.poolQueryViaFetch = true;
-    neonConfig.fetchConnectionCache = true;
+    console.log("[Prisma] Using Neon Pool adapter");
 
     const pool = new Pool({ connectionString });
     const adapter = new PrismaNeon(pool as any);
