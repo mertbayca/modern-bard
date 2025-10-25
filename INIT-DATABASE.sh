@@ -7,7 +7,24 @@ echo "🚀 Modern Bard - Production Database Setup"
 echo "=========================================="
 echo ""
 
+# Check if vercel is installed
+if ! command -v vercel &> /dev/null; then
+    echo "❌ Vercel CLI not found. Installing..."
+    npm install -g vercel
+fi
+
+# Check if logged in to Vercel
+echo "🔐 Checking Vercel authentication..."
+vercel whoami &> /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "⚠️  Not logged in to Vercel."
+    echo "   Please login when prompted..."
+    vercel login
+fi
+
 # Step 1: Pull environment variables
+echo ""
 echo "📡 Step 1: Pulling production environment variables from Vercel..."
 vercel env pull .env.production.local
 
