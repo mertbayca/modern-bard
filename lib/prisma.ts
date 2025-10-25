@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeonHTTP } from "@prisma/adapter-neon";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -14,13 +15,16 @@ function createPrismaClient() {
   const usingNeon = connectionString.includes("neon.tech");
 
   if (usingNeon) {
-    console.log("[Prisma] Using Neon HTTP adapter");
-    const adapter = new PrismaNeonHTTP(connectionString, {
-      arrayMode: true,
-      fullResults: true,
-    });
+    console.log("[Prisma] Using Neon Pool adapter with fetch");
+    // Use fetch for HTTP-based queries in serverless environments
+    neonConfig.poolQueryViaFetch = true;
+    neonConfig.fetchConnectionCache = true;
+
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaNeon(pool as any);
+
     return new PrismaClient({
-      adapter,
+      adapter: adapter as any,
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
     });
   }
