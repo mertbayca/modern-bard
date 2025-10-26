@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
+const MDEditor = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface PostEditorProps {
   post?: {
@@ -116,97 +121,160 @@ export function PostEditor({ post }: PostEditorProps) {
   };
 
   return (
-    <form className="space-y-6">
-      <div>
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          placeholder="Enter post title"
-          required
-        />
-      </div>
+    <div className="max-w-7xl mx-auto">
+      <form className="space-y-8">
+        {/* Header Section */}
+        <div className="bg-paper dark:bg-ink border border-mist dark:border-ink-light rounded-lg p-6 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Label htmlFor="title" className="text-base font-semibold mb-2 block">
+                Title
+              </Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Enter an engaging title..."
+                className="text-lg h-12"
+                required
+              />
+            </div>
 
-      <div>
-        <Label htmlFor="form">Form</Label>
-        <select
-          id="form"
-          value={formData.form}
-          onChange={(e) => setFormData({ ...formData, form: e.target.value })}
-          className="w-full rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 py-2 text-ink dark:text-paper"
-        >
-          <option value="essay">Essay</option>
-          <option value="poem">Poem</option>
-          <option value="note">Note</option>
-        </select>
-      </div>
+            <div>
+              <Label htmlFor="form" className="text-base font-semibold mb-2 block">
+                Form
+              </Label>
+              <select
+                id="form"
+                value={formData.form}
+                onChange={(e) => setFormData({ ...formData, form: e.target.value })}
+                className="w-full h-12 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-4 py-2 text-ink dark:text-paper text-base focus:ring-2 focus:ring-sage focus:border-sage"
+              >
+                <option value="essay">📝 Essay</option>
+                <option value="poem">✍️ Poem</option>
+                <option value="note">📌 Note</option>
+              </select>
+            </div>
+          </div>
 
-      <div>
-        <Label htmlFor="themes">Themes (comma-separated)</Label>
-        <Input
-          id="themes"
-          value={formData.themes}
-          onChange={(e) => setFormData({ ...formData, themes: e.target.value })}
-          placeholder="craft, psyche, tech, culture"
-        />
-        <p className="text-sm text-ink/60 dark:text-paper/60 mt-1">
-          Separate multiple themes with commas
-        </p>
-      </div>
-
-      <div>
-        <Label htmlFor="content">Content (MDX)</Label>
-        <Textarea
-          id="content"
-          value={formData.content}
-          onChange={(e) =>
-            setFormData({ ...formData, content: e.target.value })
-          }
-          placeholder="Write your post content in MDX format..."
-          className="min-h-[400px] font-mono text-sm"
-          required
-        />
-      </div>
-
-      <div className="flex gap-4 justify-between">
-        <div className="flex gap-4">
-          <Button
-            type="button"
-            onClick={(e) => handleSubmit(e, false)}
-            variant="outline"
-            disabled={loading}
-          >
-            {loading ? "Saving..." : "Save Draft"}
-          </Button>
-          <Button
-            type="button"
-            onClick={(e) => handleSubmit(e, true)}
-            disabled={loading}
-          >
-            {loading ? "Publishing..." : post?.published ? "Update Published" : "Publish"}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => router.push("/admin/dashboard")}
-            variant="ghost"
-            disabled={loading}
-          >
-            Cancel
-          </Button>
+          <div className="mt-6">
+            <Label htmlFor="themes" className="text-base font-semibold mb-2 block">
+              Themes
+            </Label>
+            <Input
+              id="themes"
+              value={formData.themes}
+              onChange={(e) => setFormData({ ...formData, themes: e.target.value })}
+              placeholder="craft, psyche, tech, culture"
+              className="h-12"
+            />
+            <p className="text-sm text-ink/60 dark:text-paper/60 mt-2">
+              Separate multiple themes with commas (e.g., craft, psyche, tech)
+            </p>
+          </div>
         </div>
 
-        {post?.id && (
-          <Button
-            type="button"
-            onClick={handleDelete}
-            variant="destructive"
-            disabled={loading}
-          >
-            Delete
-          </Button>
-        )}
-      </div>
-    </form>
+        {/* Editor Section */}
+        <div className="bg-paper dark:bg-ink border border-mist dark:border-ink-light rounded-lg overflow-hidden shadow-sm">
+          <div className="border-b border-mist dark:border-ink-light bg-mist/30 dark:bg-ink-light/30 px-6 py-3">
+            <Label className="text-base font-semibold">
+              Content Editor
+            </Label>
+            <p className="text-sm text-ink/60 dark:text-paper/60 mt-1">
+              Write your post using Markdown formatting. Use the toolbar for common formatting options.
+            </p>
+          </div>
+
+          <div className="p-6" data-color-mode="light">
+            <MDEditor
+              value={formData.content}
+              onChange={(value) => setFormData({ ...formData, content: value || "" })}
+              height={600}
+              preview="live"
+              hideToolbar={false}
+              enableScroll={true}
+              visibleDragbar={true}
+              highlightEnable={true}
+              className="!bg-paper dark:!bg-ink"
+            />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="bg-paper dark:bg-ink border border-mist dark:border-ink-light rounded-lg p-6 shadow-sm">
+          <div className="flex gap-4 justify-between items-center">
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                type="button"
+                onClick={(e) => handleSubmit(e, false)}
+                variant="outline"
+                disabled={loading}
+                className="h-11 px-6 text-base"
+              >
+                {loading ? "Saving..." : "💾 Save Draft"}
+              </Button>
+              <Button
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
+                disabled={loading}
+                className="h-11 px-6 text-base bg-sage hover:bg-sage-dark"
+              >
+                {loading ? "Publishing..." : post?.published ? "🚀 Update Published" : "🚀 Publish"}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => router.push("/admin/dashboard")}
+                variant="ghost"
+                disabled={loading}
+                className="h-11 px-6 text-base"
+              >
+                ← Back to Dashboard
+              </Button>
+            </div>
+
+            {post?.id && (
+              <Button
+                type="button"
+                onClick={handleDelete}
+                variant="destructive"
+                disabled={loading}
+                className="h-11 px-6 text-base"
+              >
+                🗑️ Delete Post
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-mist dark:border-ink-light">
+            <div className="flex items-center justify-between text-sm text-ink/60 dark:text-paper/60">
+              <div className="flex gap-6">
+                <span>
+                  Words: {formData.content.split(/\s+/).filter(w => w.length > 0).length}
+                </span>
+                <span>
+                  Characters: {formData.content.length}
+                </span>
+                <span>
+                  Est. reading time: {Math.ceil(formData.content.split(/\s+/).filter(w => w.length > 0).length / 200)} min
+                </span>
+              </div>
+              <div>
+                {post?.published ? (
+                  <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
+                    <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full"></span>
+                    Published
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-yellow-600 dark:text-yellow-400 font-medium">
+                    <span className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full"></span>
+                    Draft
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 }
