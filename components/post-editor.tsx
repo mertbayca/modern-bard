@@ -160,8 +160,25 @@ export function PostEditor({ post }: PostEditorProps) {
             }}
           />
 
+          {/* Formatting Help - Collapsible */}
+          <details className="px-8 pb-4 text-xs text-ink/40 dark:text-paper/40">
+            <summary className="cursor-pointer hover:text-ink/60 dark:hover:text-paper/60">Formatting help</summary>
+            <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-1">
+              <div><code>**bold**</code> → <strong>bold</strong></div>
+              <div><code>*italic*</code> → <em>italic</em></div>
+              <div><code># Heading 1</code></div>
+              <div><code>## Heading 2</code></div>
+              <div><code>- List item</code></div>
+              <div><code>1. Numbered</code></div>
+              <div><code>&gt; Quote</code></div>
+              <div><code>`code`</code> → <code>code</code></div>
+              <div><code>[link](url)</code></div>
+              <div><code>---</code> → horizontal rule</div>
+            </div>
+          </details>
+
           {/* Stats Bar */}
-          <div className="flex items-center justify-between px-8 pb-6 text-sm text-ink/50 dark:text-paper/50">
+          <div className="flex items-center justify-between px-8 pb-6 text-sm text-ink/50 dark:text-paper/50 border-t border-mist dark:border-ink-light pt-4">
             <div className="flex gap-6">
               <span>{wordCount} words</span>
               <span>{readingTime} min read</span>
