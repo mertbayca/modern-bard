@@ -32,12 +32,9 @@ async function main() {
     // Create admin user
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = generateId();
-
     const role = 'admin';
-    await sql`
-      INSERT INTO users (id, email, password, name, role)
-      VALUES (${id}, ${email}, ${hashedPassword}, ${name}, ${role})
-    `;
+
+    await sql`INSERT INTO users (id, email, password, name, role) VALUES (${id}, ${email}, ${hashedPassword}, ${name}, ${role})`;
 
     console.log("✅ Admin user created successfully!\n");
     console.log("📝 Login credentials:");
