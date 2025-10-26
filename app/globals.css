@@ -82,3 +82,14 @@ body::before {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-literata), serif;
 }
+
+/* Custom prose spacing for published posts */
+.prose p {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.8 !important;
+}
+
+.prose br {
+  display: block;
+  margin: 0.25rem 0 !important;
+}

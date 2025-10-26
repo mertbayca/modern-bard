@@ -2,8 +2,6 @@ import { Hero } from "@/components/hero";
 import { ArticleCard } from "@/components/article-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { allPosts } from "contentlayer/generated";
-import { compareDesc } from "date-fns";
 import { sql } from "@/lib/db";
 
 type CardPost = {
@@ -21,9 +19,17 @@ function mapDbPostToCard(post: any): CardPost {
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.round(wordCount / 200));
 
+  // Strip HTML tags from summary to prevent code from showing
+  const stripHtml = (html: string) => {
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
+  const rawSummary = post.summary || content.split(/\n+/, 2)[0]?.slice(0, 160) || "";
+  const cleanSummary = stripHtml(rawSummary).slice(0, 160);
+
   return {
     title: post.title,
-    summary: post.summary || content.split(/\n+/, 2)[0]?.slice(0, 160) || "",
+    summary: cleanSummary,
     date: new Date(post.created_at).toISOString(),
     form: post.form,
     readingTime,
@@ -37,39 +43,18 @@ function mapDbPostToCard(post: any): CardPost {
   };
 }
 
-function mapMdxPostToCard(post: (typeof allPosts)[number]): CardPost {
-  return {
-    title: post.title,
-    summary: post.summary,
-    date: post.date,
-    form: post.form,
-    readingTime: post.readingTime,
-    url: post.url,
-    themes: post.themes,
-  };
-}
-
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [dbPosts] = await Promise.all([
-    sql`
-      SELECT id, title, slug, summary, content, form, themes, created_at
-      FROM drafts
-      WHERE published = true
-      ORDER BY created_at DESC
-      LIMIT 5
-    `,
-  ]);
+  const dbPosts = await sql`
+    SELECT id, title, slug, summary, content, form, themes, created_at
+    FROM drafts
+    WHERE published = true
+    ORDER BY created_at DESC
+    LIMIT 3
+  `;
 
-  const cards: CardPost[] = [
-    ...dbPosts.map(mapDbPostToCard),
-    ...allPosts
-      .filter((post) => post.published)
-      .map(mapMdxPostToCard),
-  ]
-    .sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)))
-    .slice(0, 3);
+  const cards: CardPost[] = dbPosts.map(mapDbPostToCard);
 
   return (
     <>

@@ -1,5 +1,4 @@
 import { sql } from "@/lib/db";
-import { allPosts } from "contentlayer/generated";
 import { LibraryClient } from "./library-client";
 
 export const metadata = {
@@ -16,11 +15,16 @@ export default async function LibraryPage() {
     ORDER BY created_at DESC
   `;
 
-  // Transform database posts to match MDX post format
-  const transformedDbPosts = dbPosts.map((post) => ({
+  // Strip HTML tags from summary
+  const stripHtml = (html: string) => {
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
+  // Transform database posts
+  const posts = dbPosts.map((post) => ({
     _id: post.id,
     title: post.title,
-    summary: post.summary || "",
+    summary: stripHtml(post.summary || "").slice(0, 160),
     date: post.date,
     form: post.form,
     themes: post.themes.split(",").map((t: string) => t.trim()),
@@ -30,16 +34,5 @@ export default async function LibraryPage() {
     source: "database" as const,
   }));
 
-  // Get MDX posts
-  const mdxPosts = allPosts
-    .filter((post) => post.published)
-    .map((post) => ({
-      ...post,
-      source: "mdx" as const,
-    }));
-
-  // Combine both sources
-  const combinedPosts = [...transformedDbPosts, ...mdxPosts];
-
-  return <LibraryClient posts={combinedPosts} />;
+  return <LibraryClient posts={posts} />;
 }

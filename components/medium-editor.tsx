@@ -24,7 +24,7 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
         },
         paragraph: {
           HTMLAttributes: {
-            class: 'mb-4',
+            style: 'margin-bottom: 0.5rem; line-height: 1.8;',
           },
         },
         hardBreak: {
@@ -51,7 +51,7 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
     editorProps: {
       attributes: {
         class: 'prose prose-lg prose-slate dark:prose-invert max-w-none focus:outline-none min-h-[600px] px-8 py-8',
-        style: 'white-space: pre-wrap;',
+        style: 'white-space: pre-wrap; line-height: 1.8;',
       },
       handleKeyDown: (view, event) => {
         // Shift+Enter = line break, Enter = new paragraph

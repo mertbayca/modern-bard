@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { allPosts } from "contentlayer/generated";
 import { PostsManager } from "@/components/posts-manager";
 
 export default async function PostsPage() {
@@ -19,7 +18,7 @@ export default async function PostsPage() {
   `;
 
   // Transform database posts
-  const transformedDbPosts = dbPosts.map((post) => ({
+  const allPostsData = dbPosts.map((post) => ({
     id: post.id,
     title: post.title,
     slug: post.slug,
@@ -32,23 +31,6 @@ export default async function PostsPage() {
     source: "database" as const,
   }));
 
-  // Transform MDX posts
-  const transformedMdxPosts = allPosts.map((post) => ({
-    id: post._id,
-    title: post.title,
-    slug: post.slug,
-    summary: post.summary || "",
-    form: post.form,
-    themes: post.themes.join(", "),
-    published: post.published,
-    createdAt: post.date,
-    updatedAt: post.date,
-    source: "mdx" as const,
-  }));
-
-  // Combine all posts
-  const allPostsData = [...transformedDbPosts, ...transformedMdxPosts];
-
   return (
     <div className="min-h-screen bg-mist/20 dark:bg-ink-light/20">
       <nav className="border-b border-mist dark:border-ink-light bg-paper dark:bg-ink sticky top-0 z-10 shadow-sm">
@@ -59,7 +41,7 @@ export default async function PostsPage() {
                 📚 All Posts
               </h1>
               <p className="text-sm text-ink/60 dark:text-paper/60">
-                Manage all your posts from database and MDX files
+                Manage all your posts from the database
               </p>
             </div>
           </div>
