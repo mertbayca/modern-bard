@@ -22,13 +22,21 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
         heading: {
           levels: [1, 2, 3],
         },
+        paragraph: {
+          HTMLAttributes: {
+            class: 'mb-4',
+          },
+        },
+        hardBreak: {
+          keepMarks: false,
+        },
       }),
       Placeholder.configure({
         placeholder,
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'rounded-lg max-w-full h-auto',
+          class: 'rounded-lg max-w-full h-auto my-4',
         },
       }),
       Link.configure({
@@ -43,10 +51,23 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
     editorProps: {
       attributes: {
         class: 'prose prose-lg prose-slate dark:prose-invert max-w-none focus:outline-none min-h-[600px] px-8 py-8',
+        style: 'white-space: pre-wrap;',
+      },
+      handleKeyDown: (view, event) => {
+        // Shift+Enter = line break, Enter = new paragraph
+        if (event.key === 'Enter' && event.shiftKey) {
+          editor?.chain().focus().setHardBreak().run();
+          return true;
+        }
+        return false;
       },
     },
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      // Clean up the HTML - remove empty paragraphs
+      const html = editor.getHTML()
+        .replace(/<p><\/p>/g, '<br>')
+        .replace(/<p>\s*<\/p>/g, '<br>');
+      onChange(html);
     },
   });
 

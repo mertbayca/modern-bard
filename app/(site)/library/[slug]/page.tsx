@@ -124,7 +124,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
       {post.source === "database" ? (
         <div
-          className="prose prose-lg prose-slate dark:prose-invert max-w-none"
+          className="prose prose-lg prose-slate dark:prose-invert max-w-none [&_p]:mb-4 [&_br]:block [&_br]:my-2"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
       ) : (
