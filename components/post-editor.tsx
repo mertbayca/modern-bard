@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { MediumEditor } from "@/components/medium-editor";
 
 interface PostEditorProps {
   post?: {
@@ -21,26 +19,24 @@ interface PostEditorProps {
 export function PostEditor({ post }: PostEditorProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: post?.title || "",
-    content: post?.content || "",
+  const [title, setTitle] = useState(post?.title || "");
+  const [content, setContent] = useState(post?.content || "");
+  const [showMeta, setShowMeta] = useState(false);
+  const [meta, setMeta] = useState({
     form: post?.form || "essay",
     themes: post?.themes || "",
-    published: post?.published || false,
   });
 
-  const handleSubmit = async (e: React.FormEvent, publish = false) => {
-    e.preventDefault();
+  const handleSubmit = async (publish = false) => {
     setLoading(true);
 
-    // Validation
-    if (!formData.title.trim()) {
+    if (!title.trim()) {
       alert("Please enter a title");
       setLoading(false);
       return;
     }
 
-    if (!formData.content.trim()) {
+    if (!content.trim()) {
       alert("Please enter content");
       setLoading(false);
       return;
@@ -54,14 +50,17 @@ export function PostEditor({ post }: PostEditorProps) {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          title,
+          content,
+          form: meta.form,
+          themes: meta.themes,
           published: publish,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to save post: ${response.status}`);
+        throw new Error(errorData.error || `Failed to save post`);
       }
 
       router.push("/admin/dashboard");
@@ -77,7 +76,7 @@ export function PostEditor({ post }: PostEditorProps) {
   const handleDelete = async () => {
     if (!post?.id) return;
 
-    if (!confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+    if (!confirm("Delete this post? This cannot be undone.")) {
       return;
     }
 
@@ -102,151 +101,122 @@ export function PostEditor({ post }: PostEditorProps) {
     }
   };
 
-  const wordCount = formData.content.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const wordCount = content.replace(/<[^>]*>/g, '').trim().split(/\s+/).filter(w => w.length > 0).length;
   const readingTime = Math.ceil(wordCount / 200);
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <form className="space-y-1" onSubmit={(e) => e.preventDefault()}>
-        {/* Minimalistic Header */}
-        <div className="bg-paper dark:bg-ink rounded-lg p-8 space-y-6">
-          {/* Title Input - Large like Medium */}
-          <div>
-            <Input
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Title"
-              className="text-4xl font-bold border-none shadow-none px-0 h-auto py-4 placeholder:text-ink/20 dark:placeholder:text-paper/20 focus-visible:ring-0"
-              required
-            />
+    <div className="min-h-screen bg-paper dark:bg-ink">
+      {/* Top Bar - Minimal */}
+      <div className="sticky top-0 z-30 bg-paper/80 dark:bg-ink/80 backdrop-blur-sm border-b border-mist dark:border-ink-light">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => router.push("/admin/dashboard")}
+              variant="ghost"
+              size="sm"
+              disabled={loading}
+            >
+              ← Exit
+            </Button>
+            <button
+              onClick={() => setShowMeta(!showMeta)}
+              className="text-sm text-ink/60 dark:text-paper/60 hover:text-ink dark:hover:text-paper"
+            >
+              {meta.form === 'essay' ? '📝' : meta.form === 'poem' ? '✍️' : '📌'} {meta.form}
+            </button>
           </div>
 
-          {/* Metadata - Compact */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-mist dark:border-ink-light">
-            <div>
-              <select
-                value={formData.form}
-                onChange={(e) => setFormData({ ...formData, form: e.target.value })}
-                className="w-full h-10 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm text-ink dark:text-paper focus:ring-1 focus:ring-sage focus:border-sage"
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-ink/50 dark:text-paper/50">
+              {wordCount} words · {readingTime} min
+            </span>
+            <Button
+              onClick={() => handleSubmit(false)}
+              variant="ghost"
+              size="sm"
+              disabled={loading}
+            >
+              {loading ? "Saving..." : "Save Draft"}
+            </Button>
+            <Button
+              onClick={() => handleSubmit(true)}
+              size="sm"
+              disabled={loading}
+              className="bg-sage text-paper hover:bg-sage-dark"
+            >
+              {loading ? "Publishing..." : "Publish"}
+            </Button>
+            {post?.id && (
+              <Button
+                onClick={handleDelete}
+                variant="ghost"
+                size="sm"
+                disabled={loading}
+                className="text-red-600 hover:text-red-700"
               >
-                <option value="essay">Essay</option>
-                <option value="poem">Poem</option>
-                <option value="note">Note</option>
-              </select>
-            </div>
-
-            <div>
-              <Input
-                value={formData.themes}
-                onChange={(e) => setFormData({ ...formData, themes: e.target.value })}
-                placeholder="Themes (craft, psyche, tech)"
-                className="h-10 text-sm"
-              />
-            </div>
+                Delete
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Content Editor - Clean like Ghost */}
-        <div className="bg-paper dark:bg-ink rounded-lg">
-          <Textarea
-            value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            placeholder="Write your story..."
-            className="min-h-[600px] text-lg leading-relaxed border-none shadow-none px-8 py-8 resize-none focus-visible:ring-0 placeholder:text-ink/20 dark:placeholder:text-paper/20"
-            required
-            style={{
-              fontFamily: 'Georgia, serif',
-              lineHeight: '1.8',
-            }}
-          />
-
-          {/* Formatting Help - Collapsible */}
-          <details className="px-8 pb-4 text-xs text-ink/40 dark:text-paper/40">
-            <summary className="cursor-pointer hover:text-ink/60 dark:hover:text-paper/60">Formatting help</summary>
-            <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-1">
-              <div><code>**bold**</code> → <strong>bold</strong></div>
-              <div><code>*italic*</code> → <em>italic</em></div>
-              <div><code># Heading 1</code></div>
-              <div><code>## Heading 2</code></div>
-              <div><code>- List item</code></div>
-              <div><code>1. Numbered</code></div>
-              <div><code>&gt; Quote</code></div>
-              <div><code>`code`</code> → <code>code</code></div>
-              <div><code>[link](url)</code></div>
-              <div><code>---</code> → horizontal rule</div>
-            </div>
-          </details>
-
-          {/* Stats Bar */}
-          <div className="flex items-center justify-between px-8 pb-6 text-sm text-ink/50 dark:text-paper/50 border-t border-mist dark:border-ink-light pt-4">
-            <div className="flex gap-6">
-              <span>{wordCount} words</span>
-              <span>{readingTime} min read</span>
-            </div>
-            <div>
-              {formData.published ? (
-                <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
-                  <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full"></span>
-                  Published
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-2 text-yellow-600 dark:text-yellow-400 font-medium">
-                  <span className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full"></span>
-                  Draft
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Action Bar - Like Medium */}
-        <div className="sticky bottom-6 left-0 right-0 z-10">
-          <div className="bg-paper/95 dark:bg-ink/95 border border-mist dark:border-ink-light rounded-full shadow-xl backdrop-blur-sm px-6 py-4 flex items-center justify-between">
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                onClick={(e) => handleSubmit(e, false)}
-                variant="ghost"
-                disabled={loading}
-                className="rounded-full"
-              >
-                {loading ? "Saving..." : "Save Draft"}
-              </Button>
-              <Button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                disabled={loading}
-                className="bg-sage text-paper hover:bg-sage-dark rounded-full px-6"
-              >
-                {loading ? "Publishing..." : post?.published ? "Update" : "Publish"}
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={() => router.push("/admin/dashboard")}
-                variant="ghost"
-                disabled={loading}
-                className="rounded-full"
-              >
-                Cancel
-              </Button>
-              {post?.id && (
-                <Button
-                  type="button"
-                  onClick={handleDelete}
-                  variant="ghost"
-                  disabled={loading}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 rounded-full"
+        {/* Metadata Panel - Slides down */}
+        {showMeta && (
+          <div className="border-t border-mist dark:border-ink-light bg-mist/20 dark:bg-ink-light/20">
+            <div className="max-w-4xl mx-auto px-6 py-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-ink/60 dark:text-paper/60 mb-1">
+                  Form
+                </label>
+                <select
+                  value={meta.form}
+                  onChange={(e) => setMeta({ ...meta, form: e.target.value })}
+                  className="w-full h-9 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm"
                 >
-                  Delete
-                </Button>
-              )}
+                  <option value="essay">Essay</option>
+                  <option value="poem">Poem</option>
+                  <option value="note">Note</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-ink/60 dark:text-paper/60 mb-1">
+                  Themes
+                </label>
+                <input
+                  type="text"
+                  value={meta.themes}
+                  onChange={(e) => setMeta({ ...meta, themes: e.target.value })}
+                  placeholder="craft, psyche, tech"
+                  className="w-full h-9 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </form>
+        )}
+      </div>
+
+      {/* Full-Page Editor */}
+      <div className="max-w-4xl mx-auto">
+        {/* Title Input - Large, clean */}
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title"
+          className="w-full border-none outline-none bg-transparent px-6 pt-12 pb-4 text-5xl font-bold text-ink dark:text-paper placeholder:text-ink/10 dark:placeholder:text-paper/10"
+          style={{ fontFamily: 'Georgia, serif' }}
+        />
+
+        {/* WYSIWYG Editor */}
+        <MediumEditor
+          content={content}
+          onChange={setContent}
+          placeholder="Tell your story..."
+        />
+
+        {/* Bottom spacer */}
+        <div className="h-32" />
+      </div>
     </div>
   );
 }

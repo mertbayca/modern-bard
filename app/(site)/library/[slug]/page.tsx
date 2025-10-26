@@ -123,16 +123,10 @@ export default async function PostPage({ params }: PostPageProps) {
       </header>
 
       {post.source === "database" ? (
-        <div className={`prose prose-lg prose-slate dark:prose-invert max-w-none ${post.form === 'poem' ? 'whitespace-pre-wrap' : ''}`}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm as any, remarkBreaks as any]}
-            components={{
-              p: ({children}) => <p className={post.form === 'poem' ? '' : ''}>{children}</p>
-            }}
-          >
-            {post.content}
-          </ReactMarkdown>
-        </div>
+        <div
+          className="prose prose-lg prose-slate dark:prose-invert max-w-none"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        />
       ) : (
         <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
           <MDXContent code={post.content} />
