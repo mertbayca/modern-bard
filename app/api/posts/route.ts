@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, content, form, themes, published } = body;
+    const { title, content, form, themes, published, summary } = body;
 
     // Generate slug from title
     const slug = title
@@ -20,13 +20,16 @@ export async function POST(request: NextRequest) {
       .replace(/^-|-$/g, "");
 
     // Extract summary
-    const summary = content.split('\n\n')[0].substring(0, 150).trim();
+    const computedSummary =
+      typeof summary === "string" && summary.trim().length > 0
+        ? summary.trim().slice(0, 180)
+        : content.split("\n\n")[0].substring(0, 150).trim();
 
     // Create draft in database
     const id = generateId();
     await sql`
       INSERT INTO drafts (id, title, slug, content, summary, form, themes, published, author_id)
-      VALUES (${id}, ${title}, ${slug}, ${content}, ${summary}, ${form}, ${themes}, ${published}, ${session.user.id})
+      VALUES (${id}, ${title}, ${slug}, ${content}, ${computedSummary}, ${form}, ${themes}, ${published}, ${session.user.id})
     `;
 
     // Note: We store content in database. MDX files should be generated locally for git commits.

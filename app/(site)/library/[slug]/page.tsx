@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { allPosts } from "contentlayer/generated";
 import { MDXContent } from "@/components/mdx-components";
-import { MDXRemote } from "next-mdx-remote/rsc";
 import { formatDate } from "@/lib/utils";
 import { sql } from "@/lib/db";
 import type { Metadata } from "next";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
 interface PostPageProps {
   params: Promise<{
@@ -120,13 +122,17 @@ export default async function PostPage({ params }: PostPageProps) {
         </div>
       </header>
 
-      <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
-        {post.source === "database" ? (
-          <MDXRemote source={post.content} />
-        ) : (
+      {post.source === "database" ? (
+        <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm as any, remarkBreaks as any]}>
+            {post.content}
+          </ReactMarkdown>
+        </div>
+      ) : (
+        <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
           <MDXContent code={post.content} />
-        )}
-      </div>
+        </div>
+      )}
     </article>
   );
 }

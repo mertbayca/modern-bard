@@ -15,7 +15,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, content, form, themes, published } = body;
+    const { title, content, form, themes, published, summary } = body;
 
     // Get existing draft
     const existingDrafts = await sql`
@@ -35,12 +35,15 @@ export async function PATCH(
       .replace(/^-|-$/g, "");
 
     // Extract summary
-    const summary = content.split('\n\n')[0].substring(0, 150).trim();
+    const resolvedSummary =
+      typeof summary === "string" && summary.trim().length > 0
+        ? summary.trim().slice(0, 180)
+        : content.split("\n\n")[0].substring(0, 150).trim();
 
     // Update draft in database
     await sql`
       UPDATE drafts
-      SET title = ${title}, slug = ${slug}, content = ${content}, summary = ${summary},
+      SET title = ${title}, slug = ${slug}, content = ${content}, summary = ${resolvedSummary},
           form = ${form}, themes = ${themes}, published = ${published}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
     `;

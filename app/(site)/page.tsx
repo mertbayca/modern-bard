@@ -4,10 +4,70 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { allPosts } from "contentlayer/generated";
 import { compareDesc } from "date-fns";
+import { sql } from "@/lib/db";
 
-export default function HomePage() {
-  const posts = allPosts
-    .filter((post) => post.published)
+type CardPost = {
+  title: string;
+  summary: string;
+  date: string;
+  form: string;
+  readingTime: number;
+  url: string;
+  themes?: string[];
+};
+
+function mapDbPostToCard(post: any): CardPost {
+  const content = typeof post.content === "string" ? post.content : "";
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(1, Math.round(wordCount / 200));
+
+  return {
+    title: post.title,
+    summary: post.summary || content.split(/\n+/, 2)[0]?.slice(0, 160) || "",
+    date: new Date(post.created_at).toISOString(),
+    form: post.form,
+    readingTime,
+    url: `/library/${post.slug}`,
+    themes: post.themes
+      ? String(post.themes)
+          .split(",")
+          .map((theme) => theme.trim())
+          .filter(Boolean)
+      : undefined,
+  };
+}
+
+function mapMdxPostToCard(post: (typeof allPosts)[number]): CardPost {
+  return {
+    title: post.title,
+    summary: post.summary,
+    date: post.date,
+    form: post.form,
+    readingTime: post.readingTime,
+    url: post.url,
+    themes: post.themes,
+  };
+}
+
+export const revalidate = 0;
+
+export default async function HomePage() {
+  const [dbPosts] = await Promise.all([
+    sql`
+      SELECT id, title, slug, summary, content, form, themes, created_at
+      FROM drafts
+      WHERE published = true
+      ORDER BY created_at DESC
+      LIMIT 5
+    `,
+  ]);
+
+  const cards: CardPost[] = [
+    ...dbPosts.map(mapDbPostToCard),
+    ...allPosts
+      .filter((post) => post.published)
+      .map(mapMdxPostToCard),
+  ]
     .sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)))
     .slice(0, 3);
 
@@ -27,9 +87,9 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
+            {cards.map((post, index) => (
               <ArticleCard
-                key={post._id}
+                key={`${post.url}-${index}`}
                 title={post.title}
                 summary={post.summary}
                 date={post.date}

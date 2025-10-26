@@ -1,16 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const MDEditor = dynamic(
-  () => import("@uiw/react-md-editor").then((mod) => mod.default),
-  { ssr: false }
-);
+import { Textarea } from "@/components/ui/textarea";
 
 interface PostEditorProps {
   post?: {
@@ -51,13 +46,6 @@ export function PostEditor({ post }: PostEditorProps) {
       return;
     }
 
-    console.log("Submitting post:", {
-      url: post?.id ? `/api/posts/${post.id}` : "/api/posts",
-      method: post?.id ? "PATCH" : "POST",
-      publish,
-      formData
-    });
-
     try {
       const url = post?.id ? `/api/posts/${post.id}` : "/api/posts";
       const method = post?.id ? "PATCH" : "POST";
@@ -71,16 +59,10 @@ export function PostEditor({ post }: PostEditorProps) {
         }),
       });
 
-      console.log("Response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Error response:", errorData);
         throw new Error(errorData.error || `Failed to save post: ${response.status}`);
       }
-
-      const result = await response.json();
-      console.log("Success:", result);
 
       router.push("/admin/dashboard");
       router.refresh();
@@ -120,157 +102,130 @@ export function PostEditor({ post }: PostEditorProps) {
     }
   };
 
+  const wordCount = formData.content.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const readingTime = Math.ceil(wordCount / 200);
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <form className="space-y-8">
-        {/* Header Section */}
-        <div className="bg-paper dark:bg-ink border border-mist dark:border-ink-light rounded-lg p-6 shadow-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Label htmlFor="title" className="text-base font-semibold mb-2 block">
-                Title
-              </Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter an engaging title..."
-                className="text-lg h-12"
-                required
-              />
+    <div className="mx-auto max-w-4xl">
+      <form className="space-y-1" onSubmit={(e) => e.preventDefault()}>
+        {/* Minimalistic Header */}
+        <div className="bg-paper dark:bg-ink rounded-lg p-8 space-y-6">
+          {/* Title Input - Large like Medium */}
+          <div>
+            <Input
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Title"
+              className="text-4xl font-bold border-none shadow-none px-0 h-auto py-4 placeholder:text-ink/20 dark:placeholder:text-paper/20 focus-visible:ring-0"
+              required
+            />
+          </div>
+
+          {/* Metadata - Compact */}
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-mist dark:border-ink-light">
+            <div>
+              <select
+                value={formData.form}
+                onChange={(e) => setFormData({ ...formData, form: e.target.value })}
+                className="w-full h-10 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm text-ink dark:text-paper focus:ring-1 focus:ring-sage focus:border-sage"
+              >
+                <option value="essay">Essay</option>
+                <option value="poem">Poem</option>
+                <option value="note">Note</option>
+              </select>
             </div>
 
             <div>
-              <Label htmlFor="form" className="text-base font-semibold mb-2 block">
-                Form
-              </Label>
-              <select
-                id="form"
-                value={formData.form}
-                onChange={(e) => setFormData({ ...formData, form: e.target.value })}
-                className="w-full h-12 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-4 py-2 text-ink dark:text-paper text-base focus:ring-2 focus:ring-sage focus:border-sage"
-              >
-                <option value="essay">📝 Essay</option>
-                <option value="poem">✍️ Poem</option>
-                <option value="note">📌 Note</option>
-              </select>
+              <Input
+                value={formData.themes}
+                onChange={(e) => setFormData({ ...formData, themes: e.target.value })}
+                placeholder="Themes (craft, psyche, tech)"
+                className="h-10 text-sm"
+              />
             </div>
           </div>
+        </div>
 
-          <div className="mt-6">
-            <Label htmlFor="themes" className="text-base font-semibold mb-2 block">
-              Themes
-            </Label>
-            <Input
-              id="themes"
-              value={formData.themes}
-              onChange={(e) => setFormData({ ...formData, themes: e.target.value })}
-              placeholder="craft, psyche, tech, culture"
-              className="h-12"
-            />
-            <p className="text-sm text-ink/60 dark:text-paper/60 mt-2">
-              Separate multiple themes with commas (e.g., craft, psyche, tech)
-            </p>
+        {/* Content Editor - Clean like Ghost */}
+        <div className="bg-paper dark:bg-ink rounded-lg">
+          <Textarea
+            value={formData.content}
+            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            placeholder="Write your story..."
+            className="min-h-[600px] text-lg leading-relaxed border-none shadow-none px-8 py-8 resize-none focus-visible:ring-0 placeholder:text-ink/20 dark:placeholder:text-paper/20"
+            required
+            style={{
+              fontFamily: 'Georgia, serif',
+              lineHeight: '1.8',
+            }}
+          />
+
+          {/* Stats Bar */}
+          <div className="flex items-center justify-between px-8 pb-6 text-sm text-ink/50 dark:text-paper/50">
+            <div className="flex gap-6">
+              <span>{wordCount} words</span>
+              <span>{readingTime} min read</span>
+            </div>
+            <div>
+              {formData.published ? (
+                <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
+                  <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full"></span>
+                  Published
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 text-yellow-600 dark:text-yellow-400 font-medium">
+                  <span className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full"></span>
+                  Draft
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Editor Section */}
-        <div className="bg-paper dark:bg-ink border border-mist dark:border-ink-light rounded-lg overflow-hidden shadow-sm">
-          <div className="border-b border-mist dark:border-ink-light bg-mist/30 dark:bg-ink-light/30 px-6 py-3">
-            <Label className="text-base font-semibold">
-              Content Editor
-            </Label>
-            <p className="text-sm text-ink/60 dark:text-paper/60 mt-1">
-              Write your post using Markdown formatting. Use the toolbar for common formatting options.
-            </p>
-          </div>
-
-          <div className="p-6" data-color-mode="light">
-            <MDEditor
-              value={formData.content}
-              onChange={(value) => setFormData({ ...formData, content: value || "" })}
-              height={600}
-              preview="live"
-              hideToolbar={false}
-              enableScroll={true}
-              visibleDragbar={true}
-              highlightEnable={true}
-              className="!bg-paper dark:!bg-ink"
-            />
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="bg-paper dark:bg-ink border border-mist dark:border-ink-light rounded-lg p-6 shadow-sm">
-          <div className="flex gap-4 justify-between items-center">
-            <div className="flex gap-3 flex-wrap">
+        {/* Floating Action Bar - Like Medium */}
+        <div className="sticky bottom-6 left-0 right-0 z-10">
+          <div className="bg-paper/95 dark:bg-ink/95 border border-mist dark:border-ink-light rounded-full shadow-xl backdrop-blur-sm px-6 py-4 flex items-center justify-between">
+            <div className="flex gap-3">
               <Button
                 type="button"
                 onClick={(e) => handleSubmit(e, false)}
-                variant="outline"
+                variant="ghost"
                 disabled={loading}
-                className="h-11 px-6 text-base"
+                className="rounded-full"
               >
-                {loading ? "Saving..." : "💾 Save Draft"}
+                {loading ? "Saving..." : "Save Draft"}
               </Button>
               <Button
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
                 disabled={loading}
-                className="h-11 px-6 text-base bg-sage hover:bg-sage-dark"
+                className="bg-sage text-paper hover:bg-sage-dark rounded-full px-6"
               >
-                {loading ? "Publishing..." : post?.published ? "🚀 Update Published" : "🚀 Publish"}
+                {loading ? "Publishing..." : post?.published ? "Update" : "Publish"}
               </Button>
+            </div>
+
+            <div className="flex gap-2">
               <Button
                 type="button"
                 onClick={() => router.push("/admin/dashboard")}
                 variant="ghost"
                 disabled={loading}
-                className="h-11 px-6 text-base"
+                className="rounded-full"
               >
-                ← Back to Dashboard
+                Cancel
               </Button>
-            </div>
-
-            {post?.id && (
-              <Button
-                type="button"
-                onClick={handleDelete}
-                variant="destructive"
-                disabled={loading}
-                className="h-11 px-6 text-base"
-              >
-                🗑️ Delete Post
-              </Button>
-            )}
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-mist dark:border-ink-light">
-            <div className="flex items-center justify-between text-sm text-ink/60 dark:text-paper/60">
-              <div className="flex gap-6">
-                <span>
-                  Words: {formData.content.split(/\s+/).filter(w => w.length > 0).length}
-                </span>
-                <span>
-                  Characters: {formData.content.length}
-                </span>
-                <span>
-                  Est. reading time: {Math.ceil(formData.content.split(/\s+/).filter(w => w.length > 0).length / 200)} min
-                </span>
-              </div>
-              <div>
-                {post?.published ? (
-                  <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
-                    <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full"></span>
-                    Published
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2 text-yellow-600 dark:text-yellow-400 font-medium">
-                    <span className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full"></span>
-                    Draft
-                  </span>
-                )}
-              </div>
+              {post?.id && (
+                <Button
+                  type="button"
+                  onClick={handleDelete}
+                  variant="ghost"
+                  disabled={loading}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 rounded-full"
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         </div>

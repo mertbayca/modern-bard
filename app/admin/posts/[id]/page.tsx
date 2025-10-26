@@ -33,6 +33,7 @@ export default async function EditPostPage({
     form: string;
     themes: string;
     published: boolean;
+    summary: string | null;
   };
 
   return (
