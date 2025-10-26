@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { writeFile, unlink, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
 
 export async function PATCH(
   request: NextRequest,
@@ -51,33 +48,8 @@ export async function PATCH(
     const drafts = await sql`SELECT * FROM drafts WHERE id = ${id}`;
     const draft = drafts[0];
 
-    const contentDir = join(process.cwd(), "content", "library");
-    const filePath = join(contentDir, `${slug}.mdx`);
-
-    // If published, create/update MDX file
-    if (published) {
-      await mkdir(contentDir, { recursive: true });
-
-      const themesArray = themes.split(",").map((t: string) => `"${t.trim()}"`).join(", ");
-      const escapedSummary = summary.replace(/"/g, '\\"');
-
-      const mdxContent = `---
-title: "${title}"
-summary: "${escapedSummary}"
-date: "${new Date(existingDraft.created_at).toISOString()}"
-updated: "${new Date().toISOString()}"
-form: "${form}"
-themes: [${themesArray}]
----
-
-${content}
-`;
-
-      await writeFile(filePath, mdxContent, "utf-8");
-    } else if (existsSync(filePath)) {
-      // If unpublished and file exists, delete it
-      await unlink(filePath);
-    }
+    // Note: Content is stored in database only.
+    // MDX files should be generated/managed locally and committed to git.
 
     return NextResponse.json({ success: true, draft });
   } catch (error) {
@@ -117,17 +89,7 @@ export async function DELETE(
       DELETE FROM drafts WHERE id = ${id}
     `;
 
-    // Delete MDX file if it exists
-    const slug = draft.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
-    const filePath = join(process.cwd(), "content", "library", `${slug}.mdx`);
-
-    if (existsSync(filePath)) {
-      await unlink(filePath);
-    }
+    // Note: MDX files are managed separately in git
 
     return NextResponse.json({ success: true });
   } catch (error) {

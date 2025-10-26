@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { sql, generateId } from "@/lib/db";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -31,28 +29,8 @@ export async function POST(request: NextRequest) {
       VALUES (${id}, ${title}, ${slug}, ${content}, ${summary}, ${form}, ${themes}, ${published}, ${session.user.id})
     `;
 
-    // If published, also create MDX file in content directory
-    if (published) {
-      const contentDir = join(process.cwd(), "content", "library");
-      await mkdir(contentDir, { recursive: true });
-
-      const themesArray = themes.split(",").map((t: string) => `"${t.trim()}"`).join(", ");
-      const escapedSummary = summary.replace(/"/g, '\\"');
-
-      const mdxContent = `---
-title: "${title}"
-summary: "${escapedSummary}"
-date: "${new Date().toISOString()}"
-form: "${form}"
-themes: [${themesArray}]
----
-
-${content}
-`;
-
-      const filePath = join(contentDir, `${slug}.mdx`);
-      await writeFile(filePath, mdxContent, "utf-8");
-    }
+    // Note: We store content in database. MDX files should be generated locally for git commits.
+    // Vercel's filesystem is read-only, so we can't write files in production.
 
     const drafts = await sql`SELECT * FROM drafts WHERE id = ${id}`;
     return NextResponse.json({ success: true, draft: drafts[0] });
