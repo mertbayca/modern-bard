@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
@@ -16,6 +16,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Check if already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth/check");
+        if (res.ok) {
+          router.push("/admin/dashboard");
+        }
+      } catch (err) {
+        // Not logged in, stay on page
+      } finally {
+        setChecking(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +63,14 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-ink/70 dark:text-paper/70">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-mist/20 dark:bg-ink-light/20">
