@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       VALUES (${sessionId}, ${user.id}, ${token}, ${expiresAt})
     `;
 
-    // Create JWT
+    // Create JWT (30 days)
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const jwt = await new SignJWT({
       userId: user.id,
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
     })
       .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("7d")
+      .setExpirationTime("30d")
       .sign(secret);
 
     const response = NextResponse.json({
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 30 * 24 * 60 * 60, // 30 days
       path: "/",
     });
 
