@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { allPosts } from "contentlayer/generated";
 import { MDXContent } from "@/components/mdx-components";
+import { MDXRemote } from "next-mdx-remote/rsc";
 import { formatDate } from "@/lib/utils";
+import { sql } from "@/lib/db";
 import type { Metadata } from "next";
 
 interface PostPageProps {
@@ -12,13 +14,37 @@ interface PostPageProps {
 
 async function getPostFromParams(params: PostPageProps["params"]) {
   const { slug } = await params;
-  const post = allPosts.find((post) => post.slug === slug);
 
-  if (!post || !post.published) {
-    return null;
+  // First check database
+  const dbPosts = await sql`
+    SELECT * FROM drafts WHERE slug = ${slug} AND published = true LIMIT 1
+  `;
+
+  if (dbPosts.length > 0) {
+    const post = dbPosts[0];
+    return {
+      title: post.title,
+      summary: post.summary || "",
+      date: post.created_at,
+      form: post.form,
+      themes: post.themes.split(",").map((t: string) => t.trim()),
+      content: post.content,
+      source: "database" as const,
+    };
   }
 
-  return post;
+  // Then check MDX
+  const mdxPost = allPosts.find((post) => post.slug === slug);
+
+  if (mdxPost && mdxPost.published) {
+    return {
+      ...mdxPost,
+      content: mdxPost.body.code,
+      source: "mdx" as const,
+    };
+  }
+
+  return null;
 }
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
@@ -42,11 +68,21 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 }
 
 export async function generateStaticParams() {
-  return allPosts
-    .filter((post) => post.published)
-    .map((post) => ({
-      slug: post.slug,
-    }));
+  // Get MDX slugs
+  const mdxSlugs = allPosts.map((post) => ({
+    slug: post.slug,
+  }));
+
+  // Get database slugs
+  const dbPosts = await sql`
+    SELECT slug FROM drafts WHERE published = true
+  `;
+
+  const dbSlugs = dbPosts.map((post) => ({
+    slug: post.slug,
+  }));
+
+  return [...mdxSlugs, ...dbSlugs];
 }
 
 export default async function PostPage({ params }: PostPageProps) {
@@ -57,48 +93,39 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   return (
-    <article className="py-16 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-prose">
-        <header className="mb-12">
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-ink/60 dark:text-paper/60">
-            <time dateTime={post.date}>{formatDate(post.date)}</time>
-            <span>•</span>
-            <span className="capitalize">{post.form}</span>
-            <span>•</span>
-            <span>{post.readingTime} min read</span>
-          </div>
-
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-ink dark:text-paper mb-6 text-balance">
-            {post.title}
-          </h1>
-
-          <p className="text-xl text-ink/70 dark:text-paper/70 text-balance">
-            {post.summary}
-          </p>
-
-          {post.themes && post.themes.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {post.themes.map((theme) => (
-                <span
-                  key={theme}
-                  className="px-3 py-1 text-sm font-medium rounded-full bg-sage/10 dark:bg-sage/20 text-sage dark:text-sage-light"
-                >
-                  {theme}
-                </span>
-              ))}
-            </div>
-          )}
-        </header>
-
-        <div className="prose prose-lg max-w-none">
-          <MDXContent code={post.body.code} />
+    <article className="mx-auto max-w-prose px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <header className="mb-12">
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-sage/10 dark:bg-sage-light/10 text-sage dark:text-sage-light border border-sage/20 dark:border-sage-light/20 capitalize">
+            {post.form}
+          </span>
+          {post.themes.map((theme: string) => (
+            <span
+              key={theme}
+              className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-mist dark:bg-ink-light text-ink/70 dark:text-paper/70 capitalize"
+            >
+              {theme}
+            </span>
+          ))}
         </div>
 
-        <footer className="mt-16 pt-8 border-t border-mist dark:border-ink-light">
-          <p className="text-sm text-ink/60 dark:text-paper/60">
-            Written by The Modern Bard • {formatDate(post.date)}
-          </p>
-        </footer>
+        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-ink dark:text-paper mb-6">
+          {post.title}
+        </h1>
+
+        <div className="flex items-center gap-2 text-sm text-ink/60 dark:text-paper/60">
+          <time dateTime={post.date}>
+            {formatDate(post.date)}
+          </time>
+        </div>
+      </header>
+
+      <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
+        {post.source === "database" ? (
+          <MDXRemote source={post.content} />
+        ) : (
+          <MDXContent code={post.content} />
+        )}
       </div>
     </article>
   );
