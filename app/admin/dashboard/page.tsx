@@ -11,10 +11,10 @@ export default async function DashboardPage() {
     redirect("/admin/login");
   }
 
-  const [draftCountResult, subscriberCountResult, recentDrafts] = await Promise.all([
+  const [draftCountResult, subscriberCountResult, allDrafts] = await Promise.all([
     sql`SELECT COUNT(*) as count FROM drafts`,
     sql`SELECT COUNT(*) as count FROM subscribers WHERE active = true`,
-    sql`SELECT * FROM drafts ORDER BY updated_at DESC LIMIT 5`,
+    sql`SELECT * FROM drafts ORDER BY updated_at DESC`,
   ]);
 
   const draftCount = Number(draftCountResult[0].count);
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
               Published Posts
             </h3>
             <p className="text-3xl font-bold text-ink dark:text-paper">
-              {recentDrafts.filter((d) => d.published).length}
+              {allDrafts.filter((d) => d.published).length}
             </p>
           </div>
         </div>
@@ -87,16 +87,16 @@ export default async function DashboardPage() {
         <div className="bg-white dark:bg-ink-light border border-mist dark:border-ink-light rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-display text-xl font-semibold text-ink dark:text-paper">
-              Recent Drafts
+              All Posts
             </h3>
             <Button asChild>
               <Link href="/admin/posts/new">New Post</Link>
             </Button>
           </div>
 
-          {recentDrafts.length > 0 ? (
+          {allDrafts.length > 0 ? (
             <div className="space-y-4">
-              {recentDrafts.map((draft) => (
+              {allDrafts.map((draft) => (
                 <div
                   key={draft.id}
                   className="flex items-center justify-between p-4 border border-mist dark:border-ink-light rounded-md hover:bg-mist/20 dark:hover:bg-ink/20 transition-colors"
@@ -106,8 +106,8 @@ export default async function DashboardPage() {
                       {draft.title}
                     </h4>
                     <p className="text-sm text-ink/60 dark:text-paper/60">
-                      {draft.published ? "Published" : "Draft"} •{" "}
-                      {new Date(draft.updatedAt).toLocaleDateString()}
+                      {draft.published ? "Published" : "Draft"} • {draft.form} •{" "}
+                      {new Date(draft.updated_at).toLocaleDateString()}
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm">
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <p className="text-center text-ink/60 dark:text-paper/60 py-8">
-              No drafts yet. Create your first post!
+              No posts yet. Create your first post!
             </p>
           )}
         </div>

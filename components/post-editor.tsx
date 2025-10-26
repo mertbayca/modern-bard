@@ -87,6 +87,34 @@ export function PostEditor({ post }: PostEditorProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!post?.id) return;
+
+    if (!confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`/api/posts/${post.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete post");
+      }
+
+      router.push("/admin/dashboard");
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert(`Failed to delete post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setLoading(false);
+    }
+  };
+
   return (
     <form className="space-y-6">
       <div>
@@ -141,30 +169,43 @@ export function PostEditor({ post }: PostEditorProps) {
         />
       </div>
 
-      <div className="flex gap-4">
-        <Button
-          type="button"
-          onClick={(e) => handleSubmit(e, false)}
-          variant="outline"
-          disabled={loading}
-        >
-          {loading ? "Saving..." : "Save Draft"}
-        </Button>
-        <Button
-          type="button"
-          onClick={(e) => handleSubmit(e, true)}
-          disabled={loading}
-        >
-          {loading ? "Publishing..." : post?.published ? "Update Published" : "Publish"}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => router.push("/admin/dashboard")}
-          variant="ghost"
-          disabled={loading}
-        >
-          Cancel
-        </Button>
+      <div className="flex gap-4 justify-between">
+        <div className="flex gap-4">
+          <Button
+            type="button"
+            onClick={(e) => handleSubmit(e, false)}
+            variant="outline"
+            disabled={loading}
+          >
+            {loading ? "Saving..." : "Save Draft"}
+          </Button>
+          <Button
+            type="button"
+            onClick={(e) => handleSubmit(e, true)}
+            disabled={loading}
+          >
+            {loading ? "Publishing..." : post?.published ? "Update Published" : "Publish"}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => router.push("/admin/dashboard")}
+            variant="ghost"
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+        </div>
+
+        {post?.id && (
+          <Button
+            type="button"
+            onClick={handleDelete}
+            variant="destructive"
+            disabled={loading}
+          >
+            Delete
+          </Button>
+        )}
       </div>
     </form>
   );
