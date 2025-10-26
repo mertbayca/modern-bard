@@ -84,43 +84,84 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-ink-light border border-mist dark:border-ink-light rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-display text-xl font-semibold text-ink dark:text-paper">
-              All Posts
-            </h3>
-            <Button asChild>
-              <Link href="/admin/posts/new">New Post</Link>
-            </Button>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="bg-white dark:bg-ink-light border border-mist dark:border-ink-light rounded-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display text-xl font-semibold text-ink dark:text-paper">
+                Recent Posts
+              </h3>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/posts">View All</Link>
+              </Button>
+            </div>
+
+            {allDrafts.length > 0 ? (
+              <div className="space-y-4">
+                {allDrafts.slice(0, 5).map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="flex items-center justify-between p-4 border border-mist dark:border-ink-light rounded-md hover:bg-mist/20 dark:hover:bg-ink/20 transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-medium text-ink dark:text-paper">
+                        {draft.title}
+                      </h4>
+                      <p className="text-sm text-ink/60 dark:text-paper/60">
+                        {draft.published ? "Published" : "Draft"} • {draft.form} •{" "}
+                        {new Date(draft.updated_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/admin/posts/${draft.id}`}>Edit</Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-ink/60 dark:text-paper/60 py-8">
+                No posts yet. Create your first post!
+              </p>
+            )}
           </div>
 
-          {allDrafts.length > 0 ? (
-            <div className="space-y-4">
-              {allDrafts.map((draft) => (
-                <div
-                  key={draft.id}
-                  className="flex items-center justify-between p-4 border border-mist dark:border-ink-light rounded-md hover:bg-mist/20 dark:hover:bg-ink/20 transition-colors"
-                >
-                  <div>
-                    <h4 className="font-medium text-ink dark:text-paper">
-                      {draft.title}
-                    </h4>
-                    <p className="text-sm text-ink/60 dark:text-paper/60">
-                      {draft.published ? "Published" : "Draft"} • {draft.form} •{" "}
-                      {new Date(draft.updated_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/admin/posts/${draft.id}`}>Edit</Link>
-                  </Button>
-                </div>
-              ))}
+          <div className="bg-white dark:bg-ink-light border border-mist dark:border-ink-light rounded-lg p-6">
+            <h3 className="font-display text-xl font-semibold text-ink dark:text-paper mb-6">
+              Quick Actions
+            </h3>
+            <div className="space-y-3">
+              <Button asChild className="w-full justify-start h-12 text-base" size="lg">
+                <Link href="/admin/posts/new">
+                  <span className="mr-2">✨</span> Create New Post
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12 text-base" size="lg">
+                <Link href="/admin/posts">
+                  <span className="mr-2">📚</span> Manage All Posts
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12 text-base" size="lg">
+                <Link href="/library">
+                  <span className="mr-2">👁️</span> View Library
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12 text-base" size="lg">
+                <Link href="/">
+                  <span className="mr-2">🏠</span> View Homepage
+                </Link>
+              </Button>
             </div>
-          ) : (
-            <p className="text-center text-ink/60 dark:text-paper/60 py-8">
-              No posts yet. Create your first post!
-            </p>
-          )}
+
+            <div className="mt-6 pt-6 border-t border-mist dark:border-ink-light">
+              <p className="text-sm text-ink/60 dark:text-paper/60 mb-3">
+                Logged in as <strong>{session.user.email}</strong>
+              </p>
+              <form action="/api/auth/logout" method="POST">
+                <Button type="submit" variant="outline" size="sm" className="w-full">
+                  Logout
+                </Button>
+              </form>
+            </div>
+          </div>
         </div>
       </main>
     </div>
