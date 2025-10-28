@@ -6,8 +6,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
-import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Quote, List, ListOrdered, Link2, ImageIcon, Minus, Underline as UnderlineIcon } from "lucide-react";
-import { useCallback } from "react";
+import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Quote, List, ListOrdered, Link2, ImageIcon, Minus, Underline as UnderlineIcon, Upload } from "lucide-react";
+import { useCallback, useRef } from "react";
 
 interface MediumEditorProps {
   content: string;
@@ -71,10 +71,44 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
     },
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const addImage = useCallback(() => {
     const url = window.prompt('Image URL');
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run();
+    }
+  }, [editor]);
+
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !editor) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'Failed to upload image');
+        return;
+      }
+
+      const { url } = await response.json();
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload image');
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   }, [editor]);
 
@@ -223,9 +257,17 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-paper/95 dark:bg-ink/95 border border-mist dark:border-ink-light rounded-full shadow-xl backdrop-blur-sm px-4 py-2">
         <button
           type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2 rounded-full hover:bg-mist dark:hover:bg-ink-light transition-colors text-ink dark:text-paper"
+          title="Upload Image"
+        >
+          <Upload className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
           onClick={addImage}
           className="p-2 rounded-full hover:bg-mist dark:hover:bg-ink-light transition-colors text-ink dark:text-paper"
-          title="Add Image"
+          title="Add Image URL"
         >
           <ImageIcon className="w-5 h-5" />
         </button>
@@ -237,6 +279,13 @@ export function MediumEditor({ content, onChange, placeholder = "Tell your story
         >
           <Minus className="w-5 h-5" />
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
       </div>
 
       {/* Editor Content */}

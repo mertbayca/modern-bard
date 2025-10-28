@@ -3,6 +3,23 @@ import { ArticleCard } from "@/components/article-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { sql } from "@/lib/db";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "The Modern Bard - Essays, Poems & Notes on Craft, Psyche, Technology & Culture",
+  description: "A literary blog exploring the intersections of craft, psyche, technology, and culture through essays, poems, and thoughtful notes.",
+  openGraph: {
+    title: "The Modern Bard",
+    description: "Essays, poems, and notes on craft, psyche, technology, and culture.",
+    type: "website",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://modernbard.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Modern Bard",
+    description: "Essays, poems, and notes on craft, psyche, technology, and culture.",
+  },
+};
 
 type CardPost = {
   title: string;

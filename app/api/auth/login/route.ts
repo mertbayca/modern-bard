@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { sql, generateId } from "@/lib/db";
+import { authLimiter, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -11,6 +12,14 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 5 login attempts per 15 minutes per IP
+    const identifier = getClientIdentifier(request);
+    const rateCheck = authLimiter.check(request, 5, `login:${identifier}`);
+
+    if (!rateCheck.success) {
+      return rateLimitResponse(rateCheck.resetAt);
+    }
+
     const body = await request.json();
     const { email, password } = loginSchema.parse(body);
 
