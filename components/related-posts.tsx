@@ -23,15 +23,15 @@ export async function RelatedPosts({
   form,
 }: RelatedPostsProps) {
   // Find related posts based on matching themes or form
-  const relatedPosts = await sql<RelatedPost[]>`
+  // Build a simpler query that PostgreSQL can handle
+  const themeConditions = themes.map((t) => `themes LIKE '%${t}%'`).join(' OR ');
+
+  const relatedPosts = await sql`
     SELECT id, title, slug, summary, form, created_at
     FROM drafts
     WHERE published = true
       AND id != ${currentPostId}
-      AND (
-        form = ${form}
-        OR themes LIKE ANY(ARRAY[${themes.map((t) => `%${t}%`)}])
-      )
+      AND (form = ${form} OR ${sql.unsafe(themeConditions || 'false')})
     ORDER BY created_at DESC
     LIMIT 3
   `;
@@ -47,7 +47,7 @@ export async function RelatedPosts({
       </h2>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {relatedPosts.map((post) => (
+        {relatedPosts.map((post: any) => (
           <Link
             key={post.id}
             href={`/library/${post.slug}`}
@@ -60,8 +60,8 @@ export async function RelatedPosts({
               {post.summary}
             </p>
             <div className="flex items-center gap-2 text-xs text-ink/60 dark:text-paper/60">
-              <time dateTime={post.created_at.toISOString()}>
-                {formatDate(post.created_at.toISOString())}
+              <time dateTime={new Date(post.created_at).toISOString()}>
+                {formatDate(new Date(post.created_at).toISOString())}
               </time>
               <span>•</span>
               <span className="capitalize">{post.form}</span>
