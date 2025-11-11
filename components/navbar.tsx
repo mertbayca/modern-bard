@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -23,9 +25,17 @@ export function Navbar() {
           <div className="flex items-center">
             <Link
               href="/"
-              className="font-display text-xl font-semibold text-ink dark:text-paper hover:text-sage dark:hover:text-sage-light transition-colors"
+              className="flex items-center gap-2 font-display text-xl font-semibold text-ink dark:text-paper hover:text-sage dark:hover:text-sage-light transition-colors"
             >
-              The Modern Bard
+              <Image
+                src={logo}
+                alt="The Modern Bard"
+                width={32}
+                height={32}
+                className="rounded-full"
+                priority
+              />
+              <span>The Modern Bard</span>
             </Link>
           </div>
 
