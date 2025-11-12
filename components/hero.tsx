@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import logo from "@/assets/logo.png";
 
 export function Hero() {
   return (
@@ -16,17 +14,6 @@ export function Hero() {
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <div className="mb-6 flex justify-center">
-            <Image
-              src={logo}
-              alt="The Modern Bard emblem"
-              width={112}
-              height={112}
-              className="rounded-full"
-              priority
-            />
-          </div>
-
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-ink dark:text-paper mb-6 text-balance">
             The Modern Bard
           </h1>
