@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Share2, Check } from "lucide-react";
 
@@ -12,8 +12,12 @@ interface ShareButtonsProps {
 
 export function ShareButtons({ url, title, description }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState(url);
 
-  const shareUrl = typeof window !== "undefined" ? window.location.origin + url : url;
+  useEffect(() => {
+    setShareUrl(window.location.origin + url);
+  }, [url]);
+
   const encodedUrl = encodeURIComponent(shareUrl);
   const encodedTitle = encodeURIComponent(title);
   const encodedDescription = encodeURIComponent(description || "");

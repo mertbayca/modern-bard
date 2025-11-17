@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS drafts (
   form TEXT NOT NULL,
   themes TEXT NOT NULL,
   views INTEGER NOT NULL DEFAULT 0,
+  song_id TEXT REFERENCES songs(id) ON DELETE SET NULL,
   author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -52,3 +53,21 @@ CREATE TABLE IF NOT EXISTS subscribers (
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email);
+
+CREATE TABLE IF NOT EXISTS songs (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  duration INTEGER,
+  file_size INTEGER,
+  cover_image_url TEXT,
+  artist TEXT,
+  album TEXT,
+  genre TEXT,
+  description TEXT,
+  author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_songs_author_id ON songs(author_id);

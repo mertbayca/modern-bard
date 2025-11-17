@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MediumEditor } from "@/components/medium-editor";
+
+interface Song {
+  id: string;
+  title: string;
+  file_url: string;
+  duration: number | null;
+}
 
 interface PostEditorProps {
   post?: {
@@ -13,6 +20,7 @@ interface PostEditorProps {
     form: string;
     themes: string;
     published: boolean;
+    song_id?: string | null;
   };
 }
 
@@ -26,6 +34,27 @@ export function PostEditor({ post }: PostEditorProps) {
     form: post?.form || "essay",
     themes: post?.themes || "",
   });
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(post?.song_id || null);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loadingSongs, setLoadingSongs] = useState(false);
+
+  useEffect(() => {
+    fetchSongs();
+  }, []);
+
+  const fetchSongs = async () => {
+    setLoadingSongs(true);
+    try {
+      const response = await fetch("/api/songs");
+      const data = await response.json();
+      setSongs(data.songs || []);
+    } catch (error) {
+      console.error("Failed to fetch songs:", error);
+    } finally {
+      setLoadingSongs(false);
+    }
+  };
+
 
   const handleSubmit = async (publish = false) => {
     setLoading(true);
@@ -55,6 +84,7 @@ export function PostEditor({ post }: PostEditorProps) {
           form: meta.form,
           themes: meta.themes,
           published: publish,
+          song_id: selectedSongId,
         }),
       });
 
@@ -163,32 +193,70 @@ export function PostEditor({ post }: PostEditorProps) {
         {/* Metadata Panel - Slides down */}
         {showMeta && (
           <div className="border-t border-mist dark:border-ink-light bg-mist/20 dark:bg-ink-light/20">
-            <div className="max-w-4xl mx-auto px-6 py-4 grid grid-cols-2 gap-4">
+            <div className="max-w-4xl mx-auto px-6 py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-ink/60 dark:text-paper/60 mb-1">
+                    Form
+                  </label>
+                  <select
+                    value={meta.form}
+                    onChange={(e) => setMeta({ ...meta, form: e.target.value })}
+                    className="w-full h-9 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm"
+                  >
+                    <option value="essay">Essay</option>
+                    <option value="poem">Poem</option>
+                    <option value="note">Note</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink/60 dark:text-paper/60 mb-1">
+                    Themes
+                  </label>
+                  <input
+                    type="text"
+                    value={meta.themes}
+                    onChange={(e) => setMeta({ ...meta, themes: e.target.value })}
+                    placeholder="craft, psyche, tech"
+                    className="w-full h-9 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Song Selection */}
               <div>
-                <label className="block text-xs font-medium text-ink/60 dark:text-paper/60 mb-1">
-                  Form
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-medium text-ink/60 dark:text-paper/60">
+                    Song (Optional)
+                  </label>
+                  <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
+                    <a href="/admin/songs" target="_blank" rel="noopener noreferrer">
+                      Manage Songs
+                    </a>
+                  </Button>
+                </div>
                 <select
-                  value={meta.form}
-                  onChange={(e) => setMeta({ ...meta, form: e.target.value })}
+                  value={selectedSongId || ""}
+                  onChange={(e) => setSelectedSongId(e.target.value || null)}
+                  disabled={loadingSongs}
                   className="w-full h-9 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm"
                 >
-                  <option value="essay">Essay</option>
-                  <option value="poem">Poem</option>
-                  <option value="note">Note</option>
+                  <option value="">No song</option>
+                  {songs.map((song) => (
+                    <option key={song.id} value={song.id}>
+                      {song.title}
+                    </option>
+                  ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-ink/60 dark:text-paper/60 mb-1">
-                  Themes
-                </label>
-                <input
-                  type="text"
-                  value={meta.themes}
-                  onChange={(e) => setMeta({ ...meta, themes: e.target.value })}
-                  placeholder="craft, psyche, tech"
-                  className="w-full h-9 rounded-md border border-mist dark:border-ink-light bg-paper dark:bg-ink px-3 text-sm"
-                />
+                {selectedSongId && songs.find((s) => s.id === selectedSongId) && (
+                  <div className="mt-2 p-3 rounded-md border border-mist dark:border-ink-light bg-mist/10 dark:bg-ink-light/10">
+                    <audio
+                      src={songs.find((s) => s.id === selectedSongId)?.file_url}
+                      controls
+                      className="w-full"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -35,6 +35,24 @@ export interface Draft {
   published: boolean;
   form: string;
   themes: string;
+  views: number;
+  song_id: string | null;
+  author_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Song {
+  id: string;
+  title: string;
+  file_url: string;
+  duration: number | null;
+  file_size: number | null;
+  cover_image_url: string | null;
+  artist: string | null;
+  album: string | null;
+  genre: string | null;
+  description: string | null;
   author_id: string;
   created_at: Date;
   updated_at: Date;
@@ -51,4 +69,18 @@ export interface Subscriber {
 // Helper function to generate CUID-like IDs
 export function generateId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).substring(2, 15)}`;
+}
+
+// Helper function to strip HTML tags from text
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+    .replace(/&amp;/g, '&') // Replace &amp; with &
+    .replace(/&lt;/g, '<') // Replace &lt; with <
+    .replace(/&gt;/g, '>') // Replace &gt; with >
+    .replace(/&quot;/g, '"') // Replace &quot; with "
+    .replace(/&#39;/g, "'") // Replace &#39; with '
+    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .trim();
 }

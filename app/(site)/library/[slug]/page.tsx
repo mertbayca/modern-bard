@@ -6,6 +6,7 @@ import { ShareButtons } from "@/components/share-buttons";
 import { ViewTracker } from "@/components/view-tracker";
 import { Eye } from "lucide-react";
 import { RelatedPosts } from "@/components/related-posts";
+import { AudioPlayer } from "@/components/audio-player";
 
 interface PostPageProps {
   params: Promise<{
@@ -16,14 +17,22 @@ interface PostPageProps {
 async function getPostFromParams(params: PostPageProps["params"]) {
   const { slug } = await params;
 
-  // Check database for post with author information
+  // Check database for post with author and song information
   const dbPosts = await sql`
     SELECT
       drafts.*,
       users.name as author_name,
-      users.email as author_email
+      users.email as author_email,
+      songs.file_url as song_url,
+      songs.duration as song_duration,
+      songs.title as song_title,
+      songs.cover_image_url as song_cover,
+      songs.artist as song_artist,
+      songs.album as song_album,
+      songs.genre as song_genre
     FROM drafts
     LEFT JOIN users ON drafts.author_id = users.id
+    LEFT JOIN songs ON drafts.song_id = songs.id
     WHERE drafts.slug = ${slug} AND drafts.published = true
     LIMIT 1
   `;
@@ -41,6 +50,14 @@ async function getPostFromParams(params: PostPageProps["params"]) {
       content: post.content,
       authorName: "The Modern Bard",
       views: post.views || 0,
+      song_url: post.song_url,
+      song_duration: post.song_duration,
+      song_title: post.song_title,
+      song_cover: post.song_cover,
+      song_artist: post.song_artist,
+      song_album: post.song_album,
+      song_genre: post.song_genre,
+      has_audio: !!post.song_url,
     };
   }
 
@@ -171,6 +188,19 @@ export default async function PostPage({ params }: PostPageProps) {
         }}
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
+
+      {/* Audio Player at the end */}
+      {post.has_audio && post.song_url && (
+        <AudioPlayer
+          src={post.song_url}
+          title={post.song_title || `${post.title} (Audio Version)`}
+          duration={post.song_duration}
+          coverImage={post.song_cover}
+          artist={post.song_artist}
+          album={post.song_album}
+          genre={post.song_genre}
+        />
+      )}
 
       <div className="mt-16 pt-8 border-t border-ink/10 dark:border-paper/10 space-y-6">
         <ShareButtons

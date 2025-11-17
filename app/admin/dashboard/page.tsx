@@ -202,6 +202,11 @@ export default async function DashboardPage() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="w-full justify-start h-12 text-base" size="lg">
+                <Link href="/admin/songs">
+                  <span className="mr-2">🎵</span> Modern Bard Audio
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12 text-base" size="lg">
                 <Link href="/library">
                   <span className="mr-2">👁️</span> View Library
                 </Link>

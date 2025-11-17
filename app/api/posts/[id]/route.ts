@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { sql } from "@/lib/db";
+import { sql, stripHtml } from "@/lib/db";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, content, form, themes, published, summary } = body;
+    const { title, content, form, themes, published, summary, song_id } = body;
 
     // Get existing draft
     const existingDrafts = await sql`
@@ -34,17 +34,18 @@ export async function PATCH(
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-    // Extract summary
+    // Extract summary (strip HTML tags)
     const resolvedSummary =
       typeof summary === "string" && summary.trim().length > 0
-        ? summary.trim().slice(0, 180)
-        : content.split("\n\n")[0].substring(0, 150).trim();
+        ? stripHtml(summary).slice(0, 180)
+        : stripHtml(content.split("\n\n")[0]).substring(0, 150);
 
     // Update draft in database
     await sql`
       UPDATE drafts
       SET title = ${title}, slug = ${slug}, content = ${content}, summary = ${resolvedSummary},
-          form = ${form}, themes = ${themes}, published = ${published}, updated_at = CURRENT_TIMESTAMP
+          form = ${form}, themes = ${themes}, published = ${published},
+          song_id = ${song_id || null}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
     `;
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { sql, generateId } from "@/lib/db";
+import { sql, generateId, stripHtml } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, content, form, themes, published, summary } = body;
+    const { title, content, form, themes, published, summary, song_id } = body;
 
     // Generate slug from title
     const slug = title
@@ -19,17 +19,17 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-    // Extract summary
+    // Extract summary (strip HTML tags)
     const computedSummary =
       typeof summary === "string" && summary.trim().length > 0
-        ? summary.trim().slice(0, 180)
-        : content.split("\n\n")[0].substring(0, 150).trim();
+        ? stripHtml(summary).slice(0, 180)
+        : stripHtml(content.split("\n\n")[0]).substring(0, 150);
 
     // Create draft in database
     const id = generateId();
     await sql`
-      INSERT INTO drafts (id, title, slug, content, summary, form, themes, published, author_id)
-      VALUES (${id}, ${title}, ${slug}, ${content}, ${computedSummary}, ${form}, ${themes}, ${published}, ${session.user.id})
+      INSERT INTO drafts (id, title, slug, content, summary, form, themes, published, song_id, author_id)
+      VALUES (${id}, ${title}, ${slug}, ${content}, ${computedSummary}, ${form}, ${themes}, ${published}, ${song_id || null}, ${session.user.id})
     `;
 
     // Note: We store content in database. MDX files should be generated locally for git commits.
